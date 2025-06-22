@@ -2,46 +2,252 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Loan Recovery</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      background: #f9f9f9;
+      text-align: center;
+    }
+    .header {
+      background: linear-gradient(to right, #0066ff, #00ccff);
+      color: white;
+      padding: 1rem;
+      font-size: 1.5rem;
       display: flex;
-      flex-direction: column;
+      justify-content: space-between;
       align-items: center;
-      justify-content: center;
-      height: 100vh;
+      padding: 10px 20px;
     }
-    h1 {
-      color: #333;
+    .content, .confirmation, .expired {
+      background: white;
+      margin: 10px;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-    input {
+    .amount {
+      font-size: 1.2rem;
+      color: gray;
+    }
+    .amount-input {
+      font-size: 1.5rem;
+      margin: 10px 0;
       padding: 10px;
-      font-size: 18px;
-      width: 300px;
-      margin-top: 20px;
+      width: 100px;
+      text-align: center;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .qr-section img {
+      width: 200px;
+      height: 200px;
+    }
+    .button-row {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .save-btn, .copy-btn {
+      background: #007bff;
+      color: white;
+      padding: 8px 15px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .method-box {
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 15px;
+      margin: 10px;
+    }
+    .method {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px;
+      border: 2px solid #00bfff;
+      border-radius: 10px;
+      margin: 10px 0;
+    }
+    .manual {
+      text-align: left;
+      margin-top: 10px;
+    }
+    .upi-box {
+      background: #f0f0f0;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 5px;
+      word-break: break-all;
+    }
+    .utr-input {
+      width: 80%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .submit-btn {
+      background: linear-gradient(to right, #007bff, #00ccff);
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .secure {
+      margin-top: 10px;
+      color: green;
+      font-size: 0.9rem;
+    }
+    .confirmation, .expired {
+      display: none;
+    }
+    .confirmation h2, .expired h2 {
+      color: green;
+    }
+    .confirmation p, .expired p {
+      font-size: 1.1rem;
+      color: #444;
+    }
+    .expired h2 {
+      color: red;
     }
   </style>
 </head>
 <body>
-  <h1>Loan Recovery</h1>
-  <input
-    type="number"
-    id="amount"
-    placeholder="Enter the amount you want to pay"
-    oninput="redirectToUPI(this.value)"
-  />
+  <div class="header">
+    <div>Payment</div>
+    <div id="countdown">10:00</div>
+  </div>
+
+  <div class="content" id="mainContent">
+    <div class="amount">Amount Payable</div>
+    <input type="number" id="amount" class="amount-input" value="500" min="1" onchange="updateQR()">
+    <div>Use Mobile Scan QR to pay</div>
+    <div class="qr-section">
+      <img id="qrImage" src="" alt="QR Code">
+    </div>
+    <div class="button-row">
+      <button class="save-btn" onclick="downloadQR()">Save QR</button>
+      <button class="copy-btn" onclick="copyUPI()">Copy UPI ID</button>
+    </div>
+
+    <div class="method-box">
+      <div class="method">
+        <span><img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Paytm_logo.png" height="24"> Paytm</span>
+        <span style="color:orange; font-weight:bold;">Recommend</span>
+      </div>
+      <div class="method">
+        <span><img src="https://upload.wikimedia.org/wikipedia/commons/f/f1/PhonePe_Logo.svg" height="24"> PhonePe</span>
+        <span style="color:orange;">Scan QR To Pay</span>
+      </div>
+      <div class="method">
+        <span><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Unified_Payments_Interface_logo.svg/512px-Unified_Payments_Interface_logo.svg.png" height="24"> UPI</span>
+      </div>
+    </div>
+
+    <div class="manual">
+      <b>Manual transfer</b>
+      <p>1. Copy the UPI ID</p>
+      <div class="upi-box" id="upiIdBox"></div>
+      <p>2. Submit UTR Below the Form</p>
+
+      <div>
+        <label><b>Paid? Submit UTR/Ref No</b></label><br>
+        <input type="text" id="utrInput" class="utr-input" placeholder="Please input 12-digit UTR">
+        <br>
+        <button class="submit-btn" onclick="submitUTR()">Submit UTR / Ref No</button>
+      </div>
+      <div class="secure">
+        <span>&#x2714; This payment is secured by UPI App Pay.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="confirmation" id="confirmationScreen">
+    <h2>✅ Payment Submitted</h2>
+    <p>Your UTR has been submitted successfully. Our system will verify your payment shortly.</p>
+  </div>
+
+  <div class="expired" id="expiredScreen">
+    <h2>❌ Payment Page Expired</h2>
+    <p>This payment session has expired. Please refresh the page to try again.</p>
+  </div>
 
   <script>
-    function redirectToUPI(value) {
-      if (value && parseFloat(value) > 0) {
-        const upiID = "hussainmajeda61@okaxis";
-        const name = "Loan%20Recovery";
-        const url = `upi://pay?pa=${upiID}&pn=${name}&am=${value}`;
-        window.location.href = url;
+    const upiIds = [
+      "hussainmajeda61-2@oksbi",
+      "hussainmajeda61-2@okicici",
+      "hussainmajeda61-2@okaxis",
+      "hussainmajeda61@okaxis",
+      "majedaali1987@ibl",
+      "majedaali9861@naviaxis",
+      "hussainlovemajeda@ybl",
+      "hussainmajeda61-3@oksbi",
+      "9082469861@okbizaxis",
+      "9321788579@okbizaxis"
+    ];
+
+    const selectedUpi = upiIds[Math.floor(Math.random() * upiIds.length)];
+    document.getElementById("upiIdBox").textContent = selectedUpi;
+
+    function updateQR() {
+      const amount = document.getElementById("amount").value;
+      const qrData = `upi://pay?pa=${selectedUpi}&pn=Payment&am=${amount}&cu=INR`;
+      document.getElementById("qrImage").src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qrData)}`;
+    }
+
+    function copyUPI() {
+      navigator.clipboard.writeText(selectedUpi).then(() => {
+        alert("✅ UPI ID copied to clipboard!");
+      });
+    }
+
+    function downloadQR() {
+      const qrImage = document.getElementById("qrImage");
+      const link = document.createElement("a");
+      link.href = qrImage.src;
+      link.download = "upi_qr.png";
+      link.click();
+      alert("📥 QR code downloaded!");
+    }
+
+    function submitUTR() {
+      const utr = document.getElementById("utrInput").value.trim();
+      if (utr.length === 12 && !isNaN(utr)) {
+        alert("✅ UTR submitted successfully!");
+        document.getElementById("mainContent").style.display = "none";
+        document.getElementById("confirmationScreen").style.display = "block";
+        clearInterval(countdownInterval);
+      } else {
+        alert("⚠️ Please enter a valid 12-digit UTR number.");
       }
     }
+
+    let timeLeft = 600; // 10 minutes
+    const countdownDisplay = document.getElementById("countdown");
+    const countdownInterval = setInterval(() => {
+      if (timeLeft <= 0) {
+        clearInterval(countdownInterval);
+        document.getElementById("mainContent").style.display = "none";
+        document.getElementById("expiredScreen").style.display = "block";
+      } else {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        countdownDisplay.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        timeLeft--;
+      }
+    }, 1000);
+
+    updateQR();
   </script>
 </body>
 </html>
